@@ -1,0 +1,43 @@
+name: GitHub Classroom Workflow
+
+on: [push]
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  build:
+    name: Autograding
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+      - name: Test with pytest
+        run: |
+          pip install pytest pytest-cov pytest-json-report
+          pytest --json-report -v hello_test.py
+      - name: Deploy Stage
+        uses: fjogeleit/http-request-action@v1
+        if: always()
+        with:
+          url: 'http://localhost:3333/api/addGithub'
+          method: 'POST'
+      #    username: ${{ secrets.AWX_USER }}
+      #    password: ${{ secrets.AWX_PASSWORD }}
+          customHeaders: '{"Content-Type": "application/json"}'
+          file: '.report.json'
+      -   name: Show GitHub context
+          if: always()
+          env:
+            GITHUB_CONTEXT: ${{ toJson(github) }}
+          run: echo "$GITHUB_CONTEXT"
+          shell: bash
+
